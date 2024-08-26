@@ -15,9 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('title');
             $table->text('content');
+            $table->string('image')->nullable();
             $table->timestamps();
         });
-    }
+    }   
 
     /**
      * Reverse the migrations.

@@ -20,5 +20,5 @@ use PHPUnit\Framework\Attributes\PostCondition;
 //     return $request->user();
 // });
 
-Route::post('post/store', [PostController::class, 'store']);
-Route::get('/Posts', [PostController::class, 'index']);
+
+Route::apiResource('/posts', @PostController::class);
