@@ -1,21 +1,20 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PostRecousrce;
 use App\Http\Resources\PostResource;
-use App\Models\Post;
-use Illuminate\Support\Facades\Validator;
+use App\Models\post;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log; // Tambahkan ini di bagian atas jika belum ada
-
+use Illuminate\Support\Facades\Validator;
 
 class PostController extends Controller
 {
-    public function index()
-    {
-        $posts = Post::latest()->get();
+
+    public function index(){
+        $posts = Post::latest()->paginate(5);
 
         return new PostResource(true, 'List Data Posts', $posts);
     }
@@ -28,13 +27,13 @@ class PostController extends Controller
             'content'   => 'required'
         ]);
 
-        if ($validate->fails()) {
+        if($validate->fails()) {
             return response()->json($validate->errors(), 422);
         }
 
         //upload image
         $image = $request->file('image');
-        $image->storeAs('public/posts', $image->hashName());
+        $image->storeAs('public/posts/', $image->hashName());
 
         //create post
         $post = Post::create([
@@ -50,68 +49,67 @@ class PostController extends Controller
     {
         $post = Post::find($id);
 
-        return new PostResource(true, 'Detail Data Post', $post);
-    }
+        return new PostResource(true, 'Detail Data Post',$post);
+}
+
+
+    //method update
     public function update(Request $request, $id)
     {
         $validate = Validator::make($request->all(), [
-            'title'     => 'required',
-            'content'   => 'required'
+            'title'   => 'required',
+            'content' => 'required',
+            'image'   => 'nullable|image|mimes:png,jpg,jpeg|max:2048'
         ]);
 
         if ($validate->fails()) {
             return response()->json($validate->errors(), 422);
         }
 
-        $post = Post::find($id);
+        $post = Post::findOrFail($id);
 
-        if (!$post) {
-            return response()->json(['error' => 'Post not found'], 404);
-        }
-
-        // Handle image upload
         if ($request->hasFile('image')) {
-            // Delete old image if it exists
-            if ($post->image) {
-                $oldImagePath = 'public/posts/' . $post->image;
-                if (Storage::exists($oldImagePath)) {
-                    Storage::delete($oldImagePath);
-                    Log::info("Deleted old image: " . $oldImagePath); // Log deletion
-                } else {
-                    Log::warning("Image to delete not found: " . $oldImagePath); // Log if image not found
-                }
+            // Hapus gambar lama jika ada
+            if ($post->image && Storage::exists('public/posts/' . $post->image)) {
+                Storage::delete('public/posts/' . $post->image);
             }
 
+            // Upload gambar baru
             $image = $request->file('image');
-            $newImageName = $image->hashName();
-            $image->storeAs('public/posts/', $newImageName);
+            $image->storeAs('public/posts', $image->hashName());
 
-            // Update post with new image
+            // Update post dengan gambar baru
             $post->update([
-                'image'     => $newImageName,
-                'title'     => $request->title,
-                'content'   => $request->content,
+                'image'   => $image->hashName(),
+                'title'   => $request->title,
+                'content' => $request->content,
             ]);
         } else {
-            // Update post without changing the image
+            // Update post tanpa mengubah gambar
             $post->update([
-                'title'     => $request->title,
-                'content'   => $request->content,
+                'title'   => $request->title,
+                'content' => $request->content,
             ]);
         }
 
         return new PostResource(true, 'Data Post Berhasil Diubah', $post);
     }
 
+
     public function destroy($id)
     {
-        $post = Post::find($id);
+        $post = Post::findOrFail($id);
 
-        Storage::delete('public/posts/' . $post->image);
+        // Hapus gambar jika ada
+        if ($post->image && Storage::exists('public/posts/' . $post->image)) {
+            Storage::delete('public/posts/' . $post->image);
+        }
 
+        // Hapus post dari database
         $post->delete();
 
-        return new PostResource(true, 'Data Post Berhasil Dihapus', $post);
-
+        return new PostResource(true, 'Data Post Berhasil Dihapus', null);
     }
+
+
 }

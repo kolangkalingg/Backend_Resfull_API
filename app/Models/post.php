@@ -17,11 +17,13 @@ class post extends Model
         'image',
     ];
 
-    protected function image(): Attribute
-    {
-        return Attribute::make(
-            get: fn ($image) => url('storage/posts/' . $image) // Path URL harus sesuai dengan penyimpanan
-        );
-    }
-    
+public function image() : Attribute
+{
+
+    return Attribute::make(
+        get: fn($image) => url('/storage/posts/' . $image),
+    );
+
+}
+
 }
